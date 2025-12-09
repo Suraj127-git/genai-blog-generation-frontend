@@ -1,14 +1,25 @@
-# Simple multi-stage build for production
-FROM node:20-alpine AS builder
+# Stage 1: Build the application
+FROM node:20-alpine AS build
 
 WORKDIR /app
+
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+
+RUN npm ci
+
 COPY . .
+
 RUN npm run build
 
-# Production stage with nginx
+# Stage 2: Serve the application with Nginx
 FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy the build output from the previous stage
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy custom Nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
